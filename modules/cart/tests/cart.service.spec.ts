@@ -6,7 +6,7 @@ import { Model } from 'mongoose';
 import { Repository } from 'typeorm';
 import { CartService } from '../cart.service';
 import { Cart } from '../schemas/cart.schema';
-import { Product } from '../../product/entities/product.entity';
+import { Product, ProductStatus } from '../../product/entities/product.entity';
 import { ProductService } from '../../product/product.service';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 
@@ -28,9 +28,26 @@ describe('CartService', () => {
     name: 'Test Product',
     description: 'This is a test product',
     price: 99.99,
-    stock: 10,
+    discountPrice: 0,
+    quantity: 10,
     images: ['image1.jpg'],
-    status: 'active',
+    tags: ['test'],
+    categories: ['electronics'],
+    status: ProductStatus.ACTIVE,
+    featured: false,
+    rating: 0,
+    reviewCount: 0,
+    attributes: {},
+    sku: 'TEST-SKU',
+    barcode: 'TEST-BARCODE',
+    sellerId: 'seller-id',
+    seller: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    // Virtual getters
+    get discountPercentage() { return 0; },
+    get isOnSale() { return false; },
+    get isInStock() { return true; },
   };
 
   const mockCartItem = {
@@ -55,16 +72,22 @@ describe('CartService', () => {
   };
 
   beforeEach(async () => {
-    const mockCartModel = {
-      new: jest.fn().mockResolvedValue(mockCart),
-      constructor: jest.fn().mockResolvedValue(mockCart),
-      findOne: jest.fn(),
-      find: jest.fn(),
-      create: jest.fn(),
-      findOneAndUpdate: jest.fn(),
-      exec: jest.fn(),
-      save: jest.fn(),
-    };
+    // Create a mock constructor function that can be called with 'new'
+    const MockCartModel = jest.fn().mockImplementation((data) => ({
+      ...data,
+      save: jest.fn().mockResolvedValue({
+        _id: 'new-cart-id',
+        ...data,
+      }),
+    }));
+
+    // Add static methods to the constructor function
+    (MockCartModel as any).findOne = jest.fn();
+    (MockCartModel as any).find = jest.fn();
+    (MockCartModel as any).create = jest.fn();
+    (MockCartModel as any).findOneAndUpdate = jest.fn();
+    (MockCartModel as any).findByIdAndUpdate = jest.fn();
+    (MockCartModel as any).exec = jest.fn();
 
     const mockProductRepository = {
       findOne: jest.fn(),
@@ -80,7 +103,7 @@ describe('CartService', () => {
         CartService,
         {
           provide: getModelToken(Cart.name),
-          useValue: mockCartModel,
+          useValue: MockCartModel,
         },
         {
           provide: getRepositoryToken(Product),
@@ -214,7 +237,7 @@ describe('CartService', () => {
         totalAmount: 0,
       });
 
-      const result = await cartService.removeItem(mockUserId, mockProductId);
+      const result = await cartService.removeItem(mockUserId, 0); // Use index 0 instead of productId
 
       expect(cartModel.findOne).toHaveBeenCalledWith({
         userId: mockUserId,

@@ -18,7 +18,10 @@ describe('CouponService', () => {
   const mockCouponId = 'test-coupon-id';
   const mockCouponCode = 'TESTCODE';
   
-  const mockCoupon: Partial<CouponEntity> = {
+  const mockCoupon: Partial<CouponEntity> & {
+    isValid: jest.Mock;
+    calculateDiscount: jest.Mock;
+  } = {
     id: mockCouponId,
     code: mockCouponCode,
     description: 'Test coupon description',

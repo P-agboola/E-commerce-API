@@ -113,11 +113,12 @@ describe('ProductService', () => {
         name: 'Test Product',
         description: 'This is a test product',
         price: 99.99,
-        stock: 100,
+        quantity: 100,
         images: ['image1.jpg', 'image2.jpg'],
         status: ProductStatus.ACTIVE,
-        category: 'Electronics',
-        specs: { weight: '1kg', dimensions: '10x10x10' },
+        categories: ['Electronics'],
+        attributes: { weight: '1kg', dimensions: '10x10x10' },
+        sellerId: 'seller-123',
       };
 
       productRepository.create.mockReturnValue(mockProduct);

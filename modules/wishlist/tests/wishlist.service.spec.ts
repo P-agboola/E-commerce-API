@@ -53,14 +53,19 @@ describe('WishlistService', () => {
   };
 
   beforeEach(async () => {
-    const mockWishlistModel = {
-      new: jest.fn().mockResolvedValue(mockWishlist),
-      constructor: jest.fn().mockResolvedValue(mockWishlist),
-      findOne: jest.fn(),
-      findById: jest.fn(),
-      create: jest.fn(),
-      exec: jest.fn(),
-    };
+    // Create a mock constructor function that can be called with 'new'
+    const MockWishlistModel = jest.fn().mockImplementation((data) => ({
+      ...data,
+      save: jest.fn().mockResolvedValue({
+        _id: 'new-wishlist-id',
+        ...data,
+      }),
+    }));
+
+    // Add static methods to the constructor function
+    (MockWishlistModel as any).findOne = jest.fn();
+    (MockWishlistModel as any).findById = jest.fn();
+    (MockWishlistModel as any).create = jest.fn();
 
     const mockProductService = {
       findOne: jest.fn(),
@@ -71,7 +76,7 @@ describe('WishlistService', () => {
         WishlistService,
         {
           provide: getModelToken(Wishlist.name),
-          useValue: mockWishlistModel,
+          useValue: MockWishlistModel,
         },
         {
           provide: ProductService,
