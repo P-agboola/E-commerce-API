@@ -49,6 +49,43 @@ export class User extends BaseEntity {
   @Column({ nullable: true })
   phone?: string;
 
+  // 2FA fields
+  @Column({ default: false })
+  isTwoFactorEnabled: boolean;
+
+  @Column({ type: 'text', nullable: true })
+  @Exclude({ toPlainOnly: true })
+  twoFactorSecret?: string;
+
+  @Column({ type: 'text', nullable: true })
+  @Exclude({ toPlainOnly: true })
+  tempTwoFactorSecret?: string;
+
+  // Social login fields
+  @Column({ type: 'text', nullable: true })
+  googleId?: string;
+
+  @Column({ type: 'text', nullable: true })
+  facebookId?: string;
+
+  @Column({ default: 'local' })
+  provider: string; // 'local', 'google', 'facebook'
+
+  // OTP fields for password reset and verification
+  @Column({ type: 'text', nullable: true })
+  @Exclude({ toPlainOnly: true })
+  otpCode?: string;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  otpCodeExpiry?: Date;
+
+  @Column({ type: 'text', nullable: true })
+  @Exclude({ toPlainOnly: true })
+  forgotPasswordOtp?: string;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  forgotPasswordOtpExpiry?: Date;
+
   // Virtual fields not stored in the database
   get fullName(): string {
     return `${this.firstName} ${this.lastName}`;

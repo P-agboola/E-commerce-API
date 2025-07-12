@@ -12,4 +12,15 @@ export default registerAs('auth', () => ({
       10,
     ),
   },
+  google: {
+    clientId: process.env.GOOGLE_CLIENT_ID ?? '',
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? '',
+    callbackUrl:
+      process.env.GOOGLE_CALLBACK_URL ??
+      'http://localhost:3000/auth/google/callback',
+  },
+  twoFactor: {
+    appName: process.env.TWO_FACTOR_APP_NAME ?? 'E-commerce API',
+    issuer: process.env.TWO_FACTOR_ISSUER ?? 'E-commerce',
+  },
 }));

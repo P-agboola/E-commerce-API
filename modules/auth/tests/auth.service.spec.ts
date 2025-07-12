@@ -3,6 +3,8 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { AuthService } from '../auth.service';
 import { UserService } from '../../user/user.service';
+import { EmailService } from '../services/email.service';
+import { TwoFactorService } from '../services/two-factor.service';
 import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { UserRole } from '../../../common/enums/user-role.enum';
 import * as bcrypt from 'bcrypt';
@@ -42,6 +44,19 @@ describe('AuthService', () => {
     get: jest.fn(),
   };
 
+  const mockEmailService = {
+    sendForgotPasswordEmail: jest.fn(),
+    sendVerificationEmail: jest.fn(),
+    send2FASetupEmail: jest.fn(),
+  };
+
+  const mockTwoFactorService = {
+    generateSecret: jest.fn(),
+    generateQRCode: jest.fn(),
+    verifyToken: jest.fn(),
+    generateOTP: jest.fn(),
+  };
+
   beforeEach(async () => {
     jest.clearAllMocks();
 
@@ -51,6 +66,8 @@ describe('AuthService', () => {
         { provide: UserService, useValue: mockUserService },
         { provide: JwtService, useValue: mockJwtService },
         { provide: ConfigService, useValue: mockConfigService },
+        { provide: EmailService, useValue: mockEmailService },
+        { provide: TwoFactorService, useValue: mockTwoFactorService },
       ],
     }).compile();
 

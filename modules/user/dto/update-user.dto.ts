@@ -55,4 +55,77 @@ export class UpdateUserDto {
   @IsString()
   @IsOptional()
   phone?: string;
+
+  // New fields for enhanced auth features
+  @ApiProperty({ description: 'User password', required: false })
+  @IsString()
+  @IsOptional()
+  password?: string;
+
+  @ApiProperty({
+    description: 'Two-factor authentication secret',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  twoFactorSecret?: string;
+
+  @ApiProperty({
+    description: 'Temporary two-factor authentication secret',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  tempTwoFactorSecret?: string;
+
+  @ApiProperty({
+    description: 'Whether two-factor authentication is enabled',
+    required: false,
+  })
+  @IsBoolean()
+  @IsOptional()
+  isTwoFactorEnabled?: boolean;
+
+  @ApiProperty({ description: 'Google ID for social login', required: false })
+  @IsString()
+  @IsOptional()
+  googleId?: string;
+
+  @ApiProperty({ description: 'Login provider', required: false })
+  @IsString()
+  @IsOptional()
+  provider?: string;
+
+  @ApiProperty({ description: 'OTP code for verification', required: false })
+  @IsString()
+  @IsOptional()
+  otpCode?: string;
+
+  @ApiProperty({ description: 'OTP code expiry date', required: false })
+  @IsOptional()
+  otpCodeExpiry?: Date;
+
+  @ApiProperty({ description: 'Forgot password OTP', required: false })
+  @IsString()
+  @IsOptional()
+  forgotPasswordOtp?: string;
+
+  @ApiProperty({
+    description: 'Forgot password OTP expiry date',
+    required: false,
+  })
+  @IsOptional()
+  forgotPasswordOtpExpiry?: Date;
+
+  @ApiProperty({ description: 'Reset password token', required: false })
+  @IsString()
+  @IsOptional()
+  resetPasswordToken?: string;
+
+  @ApiProperty({
+    description: 'Reset password token expiry date',
+    required: false,
+  })
+  @IsOptional()
+  resetPasswordTokenExpiry?: Date;
 }

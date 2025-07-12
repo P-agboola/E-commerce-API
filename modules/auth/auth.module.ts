@@ -5,6 +5,9 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { GoogleStrategy } from './strategies/google.strategy';
+import { EmailService } from './services/email.service';
+import { TwoFactorService } from './services/two-factor.service';
 import { UserModule } from '../user/user.module';
 import { RolesGuard } from './guards/roles.guard';
 
@@ -23,7 +26,14 @@ import { RolesGuard } from './guards/roles.guard';
       }),
     }),
   ],
-  providers: [AuthService, JwtStrategy, RolesGuard],
+  providers: [
+    AuthService,
+    JwtStrategy,
+    GoogleStrategy,
+    EmailService,
+    TwoFactorService,
+    RolesGuard,
+  ],
   controllers: [AuthController],
   exports: [AuthService, JwtStrategy, PassportModule],
 })

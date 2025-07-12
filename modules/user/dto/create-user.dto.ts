@@ -58,4 +58,15 @@ export class CreateUserDto {
   @IsString()
   @IsOptional()
   phone?: string;
+
+  // Social login fields
+  @ApiProperty({ description: 'Google ID for social login', required: false })
+  @IsString()
+  @IsOptional()
+  googleId?: string;
+
+  @ApiProperty({ description: 'Login provider', default: 'local' })
+  @IsString()
+  @IsOptional()
+  provider?: string;
 }
