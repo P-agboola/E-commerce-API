@@ -70,7 +70,7 @@ For complete documentation, refer to the documentation.md file.
         'support@example.com',
       )
       .setLicense('MIT', 'https://opensource.org/licenses/MIT')
-      .addServer(`http://localhost:${port}/${apiPrefix}`, 'Development Server')
+      .addServer(`http://localhost:${port}`, 'Development Server')
       .addTag('auth', 'Authentication endpoints')
       .addTag('users', 'User management endpoints')
       .addTag('products', 'Product catalog endpoints')
