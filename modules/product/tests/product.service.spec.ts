@@ -43,6 +43,8 @@ describe('ProductService', () => {
       findOne: jest.fn(),
       update: jest.fn(),
       softRemove: jest.fn(),
+      merge: jest.fn(),
+      delete: jest.fn(),
       createQueryBuilder: jest.fn(() => ({
         where: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
@@ -59,6 +61,7 @@ describe('ProductService', () => {
       create: jest.fn(),
       findByIdAndUpdate: jest.fn(),
       findByIdAndDelete: jest.fn(),
+      deleteMany: jest.fn(),
     };
 
     const mockCategoryModel = {
@@ -199,19 +202,20 @@ describe('ProductService', () => {
   });
 
   describe('remove', () => {
-    it('should soft remove the product', async () => {
-      productRepository.findOne.mockResolvedValue(mockProduct);
+    it('should delete the product', async () => {
+      productRepository.delete.mockResolvedValue({ affected: 1 });
+      variantModel.deleteMany = jest.fn().mockResolvedValue({});
 
       await productService.remove('test-product-id');
 
-      expect(productRepository.findOne).toHaveBeenCalledWith({
-        where: { id: 'test-product-id' },
+      expect(productRepository.delete).toHaveBeenCalledWith('test-product-id');
+      expect(variantModel.deleteMany).toHaveBeenCalledWith({
+        productId: 'test-product-id',
       });
-      expect(productRepository.softRemove).toHaveBeenCalledWith(mockProduct);
     });
 
     it('should throw NotFoundException when product is not found', async () => {
-      productRepository.findOne.mockResolvedValue(null);
+      productRepository.delete.mockResolvedValue({ affected: 0 });
 
       await expect(productService.remove('non-existent-id')).rejects.toThrow(
         NotFoundException,

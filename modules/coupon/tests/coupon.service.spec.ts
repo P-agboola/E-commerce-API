@@ -1,7 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import {
+  NotFoundException,
+  ConflictException,
+  BadRequestException,
+} from '@nestjs/common';
 import { CouponService } from '../coupon.service';
 import { CouponEntity, DiscountType } from '../entities/coupon.entity';
 import { Product } from '../../product/entities/product.entity';
@@ -17,7 +21,7 @@ describe('CouponService', () => {
 
   const mockCouponId = 'test-coupon-id';
   const mockCouponCode = 'TESTCODE';
-  
+
   const mockCoupon: Partial<CouponEntity> & {
     isValid: jest.Mock;
     calculateDiscount: jest.Mock;
@@ -36,7 +40,7 @@ describe('CouponService', () => {
     usageCount: 0,
     applicableProducts: [],
     isValid: jest.fn().mockReturnValue(true),
-    calculateDiscount: jest.fn().mockImplementation(amount => amount * 0.1) // 10% discount
+    calculateDiscount: jest.fn().mockImplementation((amount) => amount * 0.1), // 10% discount
   };
 
   const mockProductId = 'test-product-id';
@@ -93,7 +97,10 @@ describe('CouponService', () => {
 
       couponRepository.findOne.mockResolvedValue(null);
       couponRepository.create.mockReturnValue(createCouponDto);
-      couponRepository.save.mockResolvedValue({ id: 'new-id', ...createCouponDto });
+      couponRepository.save.mockResolvedValue({
+        id: 'new-id',
+        ...createCouponDto,
+      });
 
       const result = await couponService.create(createCouponDto);
 
@@ -133,14 +140,17 @@ describe('CouponService', () => {
 
       couponRepository.findOne.mockResolvedValue(null);
       productRepository.findByIds.mockResolvedValue(mockProducts);
-      
-      const createdCoupon = { 
+
+      const createdCoupon = {
         ...createCouponDto,
-        applicableProducts: mockProducts
+        applicableProducts: mockProducts,
       };
-      
+
       couponRepository.create.mockReturnValue(createdCoupon);
-      couponRepository.save.mockResolvedValue({ id: 'new-id', ...createdCoupon });
+      couponRepository.save.mockResolvedValue({
+        id: 'new-id',
+        ...createdCoupon,
+      });
 
       const result = await couponService.create(createCouponDto);
 
@@ -259,9 +269,9 @@ describe('CouponService', () => {
       couponRepository.findOne.mockResolvedValueOnce(mockCoupon);
       couponRepository.findOne.mockResolvedValueOnce({ code: 'EXISTING-CODE' });
 
-      await expect(couponService.update(mockCouponId, updateCouponDto)).rejects.toThrow(
-        ConflictException,
-      );
+      await expect(
+        couponService.update(mockCouponId, updateCouponDto),
+      ).rejects.toThrow(ConflictException);
     });
   });
 

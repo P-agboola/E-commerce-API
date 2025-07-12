@@ -16,7 +16,7 @@ describe('WishlistService', () => {
 
   const mockUserId = 'test-user-id';
   const mockProductId = 'test-product-id';
-  
+
   const mockProduct = {
     id: mockProductId,
     name: 'Test Product',
@@ -40,7 +40,7 @@ describe('WishlistService', () => {
     updatedAt: new Date(),
     discountPercentage: 0,
     isOnSale: false,
-    isInStock: true
+    isInStock: true,
   } as Product;
 
   const mockWishlist = {
@@ -86,7 +86,9 @@ describe('WishlistService', () => {
     }).compile();
 
     wishlistService = module.get<WishlistService>(WishlistService);
-    wishlistModel = module.get<MockModel<Wishlist>>(getModelToken(Wishlist.name));
+    wishlistModel = module.get<MockModel<Wishlist>>(
+      getModelToken(Wishlist.name),
+    );
     productService = module.get(ProductService);
   });
 
@@ -103,7 +105,9 @@ describe('WishlistService', () => {
 
       const result = await wishlistService.findByUserId(mockUserId);
 
-      expect(wishlistModel.findOne).toHaveBeenCalledWith({ userId: mockUserId });
+      expect(wishlistModel.findOne).toHaveBeenCalledWith({
+        userId: mockUserId,
+      });
       expect(productService.findOne).toHaveBeenCalledWith(mockProductId);
       expect(result).toEqual({
         _id: mockWishlist._id,
@@ -118,17 +122,19 @@ describe('WishlistService', () => {
       (wishlistModel.findOne as jest.Mock).mockReturnValue({
         exec: jest.fn().mockResolvedValue(null),
       });
-      
+
       const newWishlist = { ...mockWishlist, products: [] };
       wishlistService.create = jest.fn().mockResolvedValue(newWishlist);
-      
+
       (wishlistModel.findById as jest.Mock).mockReturnValue({
         exec: jest.fn().mockResolvedValue(newWishlist),
       });
 
       const result = await wishlistService.findByUserId(mockUserId);
 
-      expect(wishlistModel.findOne).toHaveBeenCalledWith({ userId: mockUserId });
+      expect(wishlistModel.findOne).toHaveBeenCalledWith({
+        userId: mockUserId,
+      });
       expect(wishlistService.create).toHaveBeenCalledWith(mockUserId);
       expect(wishlistModel.findById).toHaveBeenCalledWith(newWishlist._id);
       expect(result).toEqual({
@@ -144,9 +150,9 @@ describe('WishlistService', () => {
       (wishlistModel.findOne as jest.Mock).mockReturnValue({
         exec: jest.fn().mockResolvedValue(null),
       });
-      
+
       wishlistService.create = jest.fn().mockResolvedValue({ _id: 'new-id' });
-      
+
       (wishlistModel.findById as jest.Mock).mockReturnValue({
         exec: jest.fn().mockResolvedValue(null),
       });
@@ -159,27 +165,11 @@ describe('WishlistService', () => {
 
   describe('create', () => {
     it('should create a new wishlist', async () => {
-      const newWishlist = {
-        userId: mockUserId,
-        products: [],
-        save: jest.fn().mockResolvedValue({
-          _id: 'new-wishlist-id',
-          userId: mockUserId,
-          products: [],
-        }),
-      };
-
-      // Mock the constructor behavior
-      (wishlistModel as any).new = jest.fn().mockReturnValue(newWishlist);
-      
-      // Alternative approach using create
-      (wishlistModel as any).create = jest.fn().mockImplementation(() => ({
-        save: jest.fn().mockResolvedValue(newWishlist)
-      }));
-
       const result = await wishlistService.create(mockUserId);
 
-      expect(result.save).toHaveBeenCalled();
+      expect(result._id).toBe('new-wishlist-id');
+      expect(result.userId).toBe(mockUserId);
+      expect(result.products).toEqual([]);
     });
   });
 
@@ -191,13 +181,13 @@ describe('WishlistService', () => {
 
       productService.findOne.mockResolvedValue(mockProduct);
       mockWishlist.save.mockResolvedValue(mockWishlist);
-      
+
       // Ensure product is not already in wishlist
       const wishlistWithoutProduct = {
         ...mockWishlist,
         products: [],
       };
-      
+
       (wishlistModel.findOne as jest.Mock).mockReturnValue({
         exec: jest.fn().mockResolvedValue(wishlistWithoutProduct),
       });
@@ -205,7 +195,9 @@ describe('WishlistService', () => {
       const result = await wishlistService.addItem(mockUserId, mockProductId);
 
       expect(productService.findOne).toHaveBeenCalledWith(mockProductId);
-      expect(wishlistModel.findOne).toHaveBeenCalledWith({ userId: mockUserId });
+      expect(wishlistModel.findOne).toHaveBeenCalledWith({
+        userId: mockUserId,
+      });
       expect(result.products).toContain(mockProductId);
       expect(result.save).toHaveBeenCalled();
     });
@@ -213,9 +205,9 @@ describe('WishlistService', () => {
     it('should throw NotFoundException if product does not exist', async () => {
       productService.findOne.mockResolvedValue(null);
 
-      await expect(wishlistService.addItem(mockUserId, 'non-existent-product')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        wishlistService.addItem(mockUserId, 'non-existent-product'),
+      ).rejects.toThrow(NotFoundException);
     });
 
     it('should not add duplicate product to wishlist', async () => {
@@ -224,14 +216,18 @@ describe('WishlistService', () => {
       });
 
       productService.findOne.mockResolvedValue(mockProduct);
-      
+
       // Product is already in the wishlist
       const result = await wishlistService.addItem(mockUserId, mockProductId);
 
       expect(productService.findOne).toHaveBeenCalledWith(mockProductId);
-      expect(wishlistModel.findOne).toHaveBeenCalledWith({ userId: mockUserId });
+      expect(wishlistModel.findOne).toHaveBeenCalledWith({
+        userId: mockUserId,
+      });
       expect(result.products).toContain(mockProductId);
-      expect(result.products.filter(id => id === mockProductId).length).toBe(1);
+      expect(result.products.filter((id) => id === mockProductId).length).toBe(
+        1,
+      );
     });
   });
 
@@ -250,9 +246,14 @@ describe('WishlistService', () => {
       });
 
       // Test removing the item
-      const result = await wishlistService.removeItem(mockUserId, mockProductId);
+      const result = await wishlistService.removeItem(
+        mockUserId,
+        mockProductId,
+      );
 
-      expect(wishlistModel.findOne).toHaveBeenCalledWith({ userId: mockUserId });
+      expect(wishlistModel.findOne).toHaveBeenCalledWith({
+        userId: mockUserId,
+      });
       expect(result.products).not.toContain(mockProductId);
       expect(result.save).toHaveBeenCalled();
     });
@@ -262,15 +263,15 @@ describe('WishlistService', () => {
         exec: jest.fn().mockResolvedValue(null),
       });
 
-      await expect(wishlistService.removeItem(mockUserId, mockProductId)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        wishlistService.removeItem(mockUserId, mockProductId),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
   describe('clear', () => {
     it('should clear all items from the wishlist', async () => {
-      // Setup mocks 
+      // Setup mocks
       (wishlistModel.findOne as jest.Mock).mockReturnValue({
         exec: jest.fn().mockResolvedValue({
           ...mockWishlist,
@@ -281,11 +282,13 @@ describe('WishlistService', () => {
           }),
         }),
       });
-      
+
       // Test clearing the wishlist
       const result = await wishlistService.clear(mockUserId);
 
-      expect(wishlistModel.findOne).toHaveBeenCalledWith({ userId: mockUserId });
+      expect(wishlistModel.findOne).toHaveBeenCalledWith({
+        userId: mockUserId,
+      });
       expect(result.products).toEqual([]);
       expect(result.save).toHaveBeenCalled();
     });

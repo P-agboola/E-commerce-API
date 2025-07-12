@@ -88,7 +88,9 @@ describe('AuthService', () => {
       await expect(authService.register(registerDto)).rejects.toThrow(
         ForbiddenException,
       );
-      expect(mockUserService.findByEmail).toHaveBeenCalledWith(registerDto.email);
+      expect(mockUserService.findByEmail).toHaveBeenCalledWith(
+        registerDto.email,
+      );
     });
 
     it('should create a new user with hashed password', async () => {
@@ -98,7 +100,9 @@ describe('AuthService', () => {
 
       await authService.register(registerDto);
 
-      expect(mockUserService.findByEmail).toHaveBeenCalledWith(registerDto.email);
+      expect(mockUserService.findByEmail).toHaveBeenCalledWith(
+        registerDto.email,
+      );
       expect(bcrypt.hash).toHaveBeenCalledWith(registerDto.password, 10);
       expect(mockUserService.create).toHaveBeenCalledWith({
         firstName: registerDto.firstName,

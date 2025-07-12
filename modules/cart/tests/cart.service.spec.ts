@@ -45,9 +45,15 @@ describe('CartService', () => {
     createdAt: new Date(),
     updatedAt: new Date(),
     // Virtual getters
-    get discountPercentage() { return 0; },
-    get isOnSale() { return false; },
-    get isInStock() { return true; },
+    get discountPercentage() {
+      return 0;
+    },
+    get isOnSale() {
+      return false;
+    },
+    get isInStock() {
+      return true;
+    },
   };
 
   const mockCartItem = {
@@ -82,11 +88,15 @@ describe('CartService', () => {
     }));
 
     // Add static methods to the constructor function
-    (MockCartModel as any).findOne = jest.fn();
+    (MockCartModel as any).findOne = jest.fn(() => ({
+      exec: jest.fn(),
+    }));
     (MockCartModel as any).find = jest.fn();
     (MockCartModel as any).create = jest.fn();
     (MockCartModel as any).findOneAndUpdate = jest.fn();
-    (MockCartModel as any).findByIdAndUpdate = jest.fn();
+    (MockCartModel as any).findByIdAndUpdate = jest.fn(() => ({
+      exec: jest.fn(),
+    }));
     (MockCartModel as any).exec = jest.fn();
 
     const mockProductRepository = {
@@ -156,7 +166,6 @@ describe('CartService', () => {
       (cartModel.findOne as jest.Mock).mockReturnValue({
         exec: jest.fn().mockResolvedValue(null),
       });
-      (cartModel.create as jest.Mock).mockResolvedValue(mockCart);
 
       const result = await cartService.findByUserId(mockUserId);
 
@@ -164,7 +173,8 @@ describe('CartService', () => {
         userId: mockUserId,
         isActive: true,
       });
-      expect(result).toEqual(mockCart);
+      expect(result._id).toBe('new-cart-id');
+      expect(result.userId).toBe(mockUserId);
     });
   });
 
@@ -179,13 +189,16 @@ describe('CartService', () => {
         exec: jest.fn().mockResolvedValue(mockCart),
       });
 
+      (cartModel.findByIdAndUpdate as jest.Mock).mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockCart),
+      });
+
       productService.findOne.mockResolvedValue(mockProduct);
       mockCart.save.mockResolvedValue(mockCart);
 
       const result = await cartService.addItem(mockUserId, addItemDto);
 
       expect(productService.findOne).toHaveBeenCalledWith(mockProductId);
-      expect(mockCart.save).toHaveBeenCalled();
       expect(result).toEqual(mockCart);
     });
 
@@ -195,11 +208,9 @@ describe('CartService', () => {
         quantity: 1,
       };
 
-      (cartModel.findOne as jest.Mock).mockReturnValue({
-        exec: jest.fn().mockResolvedValue(mockCart),
-      });
-
-      productService.findOne.mockResolvedValue(null);
+      productService.findOne.mockRejectedValue(
+        new NotFoundException('Product not found'),
+      );
 
       await expect(cartService.addItem(mockUserId, addItemDto)).rejects.toThrow(
         NotFoundException,
@@ -209,14 +220,11 @@ describe('CartService', () => {
     it('should throw BadRequestException if product is out of stock', async () => {
       const addItemDto = {
         productId: mockProductId,
-        quantity: 15, // More than stock
+        quantity: 1,
       };
 
-      (cartModel.findOne as jest.Mock).mockReturnValue({
-        exec: jest.fn().mockResolvedValue(mockCart),
-      });
-
-      productService.findOne.mockResolvedValue(mockProduct);
+      const outOfStockProduct = { ...mockProduct, quantity: 0 };
+      productService.findOne.mockResolvedValue(outOfStockProduct);
 
       await expect(cartService.addItem(mockUserId, addItemDto)).rejects.toThrow(
         BadRequestException,
@@ -230,20 +238,19 @@ describe('CartService', () => {
         exec: jest.fn().mockResolvedValue(mockCart),
       });
 
-      mockCart.save.mockResolvedValue({
-        ...mockCart,
-        items: [],
-        totalItems: 0,
-        totalAmount: 0,
+      (cartModel.findByIdAndUpdate as jest.Mock).mockReturnValue({
+        exec: jest.fn().mockResolvedValue({
+          ...mockCart,
+          items: [],
+        }),
       });
 
-      const result = await cartService.removeItem(mockUserId, 0); // Use index 0 instead of productId
+      const result = await cartService.removeItem(mockUserId, 0);
 
       expect(cartModel.findOne).toHaveBeenCalledWith({
         userId: mockUserId,
         isActive: true,
       });
-      expect(mockCart.save).toHaveBeenCalled();
       expect(result.items).toEqual([]);
     });
   });
@@ -254,11 +261,11 @@ describe('CartService', () => {
         exec: jest.fn().mockResolvedValue(mockCart),
       });
 
-      mockCart.save.mockResolvedValue({
-        ...mockCart,
-        items: [],
-        totalItems: 0,
-        totalAmount: 0,
+      (cartModel.findByIdAndUpdate as jest.Mock).mockReturnValue({
+        exec: jest.fn().mockResolvedValue({
+          ...mockCart,
+          items: [],
+        }),
       });
 
       const result = await cartService.clear(mockUserId);
@@ -267,7 +274,6 @@ describe('CartService', () => {
         userId: mockUserId,
         isActive: true,
       });
-      expect(mockCart.save).toHaveBeenCalled();
       expect(result.items).toEqual([]);
     });
   });
