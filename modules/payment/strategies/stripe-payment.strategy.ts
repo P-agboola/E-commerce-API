@@ -51,32 +51,76 @@ export class StripePaymentStrategy implements PaymentStrategy {
     }
   }
 
+  /**
+   * Confirms a previously created payment intent.
+   *
+   * Confirmation is not a yes/no operation: a card can succeed, be declined,
+   * or come back needing 3-D Secure authentication from the shopper. All three
+   * are returned as a PaymentResult so the caller never has to catch to learn
+   * the outcome — `status` carries the state, and `details.requiresAction`
+   * plus `details.clientSecret` tell the client when to finish authentication.
+   */
   async processPayment(paymentData: any): Promise<PaymentResult> {
-    try {
-      const { paymentIntentId, paymentMethodId } = paymentData;
+    const { paymentIntentId, paymentMethodId, returnUrl } = paymentData ?? {};
 
-      // In a real implementation, you would confirm the payment intent
-      // const paymentIntent = await this.stripe.paymentIntents.confirm(paymentIntentId, {
-      //   payment_method: paymentMethodId,
-      // });
-
-      // Mock implementation
-      const mockTransactionId = `txn_${Date.now()}`;
-
-      return {
-        success: true,
-        transactionId: mockTransactionId,
-        paymentIntentId,
-        status: PaymentStatus.SUCCEEDED,
-        details: {
-          paymentMethod: paymentMethodId,
-        },
-      };
-    } catch (error) {
+    if (!paymentIntentId) {
       return {
         success: false,
         status: PaymentStatus.FAILED,
-        errorMessage: error.message || 'Failed to process payment',
+        errorMessage: 'paymentIntentId is required to process a payment',
+      };
+    }
+
+    try {
+      const paymentIntent = await this.stripe.paymentIntents.confirm(
+        paymentIntentId,
+        {
+          ...(paymentMethodId ? { payment_method: paymentMethodId } : {}),
+          // Stripe requires a return_url for payment methods that redirect
+          // (3-D Secure, most wallets). Omitted for plain card confirmations.
+          ...(returnUrl ? { return_url: returnUrl } : {}),
+        },
+      );
+
+      const status = this.mapIntentStatus(paymentIntent.status);
+      const requiresAction = paymentIntent.status === 'requires_action';
+
+      return {
+        success: status !== PaymentStatus.FAILED,
+        transactionId: this.extractChargeId(paymentIntent),
+        paymentIntentId: paymentIntent.id,
+        status,
+        details: {
+          stripeStatus: paymentIntent.status,
+          paymentMethod: paymentMethodId ?? paymentIntent.payment_method,
+          requiresAction,
+          // Only surfaced when the shopper still has to act on it.
+          clientSecret: requiresAction ? paymentIntent.client_secret : undefined,
+          nextAction: paymentIntent.next_action?.type,
+        },
+        errorMessage:
+          status === PaymentStatus.FAILED
+            ? (paymentIntent.last_payment_error?.message ??
+              'Payment could not be completed')
+            : undefined,
+      };
+    } catch (error: any) {
+      // A declined card arrives here as a StripeCardError rather than a
+      // rejected intent, so it is translated into the same shape as every
+      // other outcome. Anything that is not a card error is an integration
+      // or network problem and is reported as FAILED with Stripe's message.
+      const isCardError = error?.type === 'StripeCardError';
+
+      return {
+        success: false,
+        paymentIntentId,
+        status: PaymentStatus.FAILED,
+        details: {
+          stripeErrorType: error?.type,
+          declineCode: isCardError ? error?.decline_code : undefined,
+          code: error?.code,
+        },
+        errorMessage: error?.message ?? 'Failed to process payment',
       };
     }
   }
@@ -142,5 +186,53 @@ export class StripePaymentStrategy implements PaymentStrategy {
       console.error('Webhook signature verification failed:', error.message);
       return false;
     }
+  }
+
+  /**
+   * Translates Stripe's intent lifecycle into the provider-neutral status the
+   * rest of the application stores. Kept as an explicit map so a new Stripe
+   * state fails loudly in review instead of silently reading as a success.
+   */
+  private mapIntentStatus(
+    stripeStatus: Stripe.PaymentIntent.Status,
+  ): PaymentStatus {
+    switch (stripeStatus) {
+      case 'succeeded':
+        return PaymentStatus.SUCCEEDED;
+      case 'processing':
+        return PaymentStatus.PROCESSING;
+      // Funds are authorised but not yet captured - money is committed, so
+      // this is in flight rather than pending shopper input.
+      case 'requires_capture':
+        return PaymentStatus.PROCESSING;
+      // Waiting on the shopper (3-D Secure) or on a further confirm call.
+      case 'requires_action':
+      case 'requires_confirmation':
+        return PaymentStatus.PENDING;
+      // Stripe rewinds to this state when the card is rejected during confirm.
+      case 'requires_payment_method':
+        return PaymentStatus.FAILED;
+      case 'canceled':
+        return PaymentStatus.CANCELLED;
+      default:
+        return PaymentStatus.FAILED;
+    }
+  }
+
+  /**
+   * `latest_charge` is the id the money actually moved under, and is what we
+   * persist as the transaction id. Stripe returns it either expanded or as a
+   * bare id depending on the request, so both shapes are handled.
+   */
+  private extractChargeId(
+    paymentIntent: Stripe.PaymentIntent,
+  ): string | undefined {
+    const charge = paymentIntent.latest_charge;
+
+    if (!charge) {
+      return undefined;
+    }
+
+    return typeof charge === 'string' ? charge : charge.id;
   }
 }
